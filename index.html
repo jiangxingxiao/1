@@ -53,6 +53,11 @@
 
     let savedCount = 0;
 
+    // Load saved items from localStorage
+    document.addEventListener('DOMContentLoaded', () => {
+      loadSavedItems();
+    });
+
     textInput.addEventListener('input', () => {
       charCount.textContent = textInput.value.length;
     });
@@ -75,6 +80,20 @@
     });
 
     function saveText(text, time) {
+      const timestamp = new Date().getTime();
+      const itemData = { text, time, timestamp };
+
+      // Save to localStorage
+      const savedItemsData = JSON.parse(localStorage.getItem('savedItems')) || [];
+      savedItemsData.push(itemData);
+      localStorage.setItem('savedItems', JSON.stringify(savedItemsData));
+
+      renderItem(itemData);
+      savedCount++;
+      updateSaveCount();
+    }
+
+    function renderItem({ text, time, timestamp }) {
       const item = document.createElement('div');
       item.className = 'item';
       item.innerHTML = `
@@ -88,14 +107,13 @@
         <div class="itemDetails">${text}</div>
       `;
       savedItems.appendChild(item);
-      savedCount++;
-      updateSaveCount();
-      startCountdown(item, time);
+      startCountdown(item, time, timestamp);
 
       const deleteBtn = item.querySelector('.deleteBtn');
       deleteBtn.addEventListener('click', () => {
         if (confirm('确定删除该条目？')) {
           item.remove();
+          removeFromLocalStorage(timestamp);
           savedCount--;
           updateSaveCount();
         }
@@ -119,13 +137,14 @@
       });
     }
 
-    function startCountdown(item, time) {
+    function startCountdown(item, time, timestamp) {
       const countdownElement = item.querySelector('.countdown');
-      let remainingTime = parseInt(time);
+      let remainingTime = parseInt(time) - Math.floor((new Date().getTime() - timestamp) / 1000);
       const interval = setInterval(() => {
         if (remainingTime <= 0) {
           clearInterval(interval);
           item.remove();
+          removeFromLocalStorage(timestamp);
           savedCount--;
           updateSaveCount();
         } else {
@@ -173,9 +192,25 @@
       if (oldestItem) {
         moveToTrash(oldestItem.querySelector('.itemDetails').textContent);
         oldestItem.remove();
+        removeFromLocalStorage(oldestItem.timestamp);
         savedCount--;
         updateSaveCount();
       }
+    }
+
+    function removeFromLocalStorage(timestamp) {
+      const savedItemsData = JSON.parse(localStorage.getItem('savedItems')) || [];
+      const updatedItemsData = savedItemsData.filter(item => item.timestamp !== timestamp);
+      localStorage.setItem('savedItems', JSON.stringify(updatedItemsData));
+    }
+
+    function loadSavedItems() {
+      const savedItemsData = JSON.parse(localStorage.getItem('savedItems')) || [];
+      savedItemsData.forEach(itemData => {
+        renderItem(itemData);
+        savedCount++;
+      });
+      updateSaveCount();
     }
   </script>
 
