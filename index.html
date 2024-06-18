@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SSE 消息传输</title>
+  <style>
+    body { font-family: Arial, sans-serif; }
+    #messages { border: 1px solid #ccc; padding: 10px; height: 200px; overflow-y: scroll; }
+    #messageInput { width: 100%; }
+  </style>
+  <script>
+    let eventSource1, eventSource2;
+    
+    function connect() {
+      eventSource1 = new EventSource('https://2.07600.icu/events');
+      eventSource2 = new EventSource('https://3.07600.icu/events');
+
+      eventSource1.onmessage = function(event) {
+        displayMessage('2.07600.icu: ' + event.data);
+      };
+
+      eventSource2.onmessage = function(event) {
+        displayMessage('3.07600.icu: ' + event.data);
+      };
+
+      eventSource1.onerror = function() {
+        console.error('EventSource from 2.07600.icu failed');
+        eventSource1.close();
+      };
+
+      eventSource2.onerror = function() {
+        console.error('EventSource from 3.07600.icu failed');
+        eventSource2.close();
+      };
+    }
+
+    function displayMessage(message) {
+      const messageElement = document.createElement('div');
+      messageElement.textContent = message;
+      document.getElementById('messages').appendChild(messageElement);
+    }
+
+    async function sendMessage() {
+      const message = document.getElementById('messageInput').value;
+      if (message.length > 10000) {
+        alert('消息长度不能超过10000字符');
+        return;
+      }
+      await fetch('https://2.07600.icu/send', {
+        method: 'POST',
+        body: message
+      });
+      await fetch('https://3.07600.icu/send', {
+        method: 'POST',
+        body: message
+      });
+      document.getElementById('messageInput').value = '';
+    }
+  </script>
+</head>
+<body onload="connect()">
+  <h1>SSE 消息传输</h1>
+  <div id="messages"></div>
+  <input type="text" id="messageInput" placeholder="输入消息">
+  <button onclick="sendMessage()">发送</button>
+</body>
+</html>
